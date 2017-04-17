@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <About>
+    <Summary>Hello world!</Summary>
+  </About>
+
+  <ServerSection>
+    <ServerHandlers>
+      <DefaultWorldGenerator seed="1680538402529060016" forceReset="true" />
+      <ServerQuitWhenAnyAgentFinishes/>
+    </ServerHandlers>
+  </ServerSection>
+
+  <AgentSection mode="Creative">
+    <Name>MalmoTutorialBot</Name>
+    <AgentStart>
+      <Placement x="252.5" y="68" z="-214.5" yaw="90"/>
+    </AgentStart>
+    <AgentHandlers>
+      <DiscreteMovementCommands autoFall="true" autoJump="true"/>
+      <ObservationFromFullStats/>
+    </AgentHandlers>
+  </AgentSection>
+</Mission>
