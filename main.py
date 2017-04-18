@@ -7,12 +7,13 @@ from levelMap import levelMap
 
 #world recording parameters
 startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
-obsDims = [5,3,5]
+obsDims = [50,3,50]
 mapping = True
 numPillars = 2 #spaces observed = -O3--O2--O1--O2--O3-
 numPlatfms = 3
 
 def getMissionXML():
+    print("creating mission xml")
     obsString = ""
     if(mapping):
         open = '<ObservationFromGrid><Grid name="sliceObserver">'
@@ -50,6 +51,7 @@ def getMissionXML():
     </Mission>'''
 
 def createTPLocs(my_mission):
+    print("calculating teleport locations")
     # unpack start position to useful data type (integer)
     x, y, z, _ = map(int, startPos)
     if(x < 0): x = x - 1
@@ -83,6 +85,7 @@ def createTPLocs(my_mission):
     return tplocs
 
 def initMalmo():
+    print("initializing malmo")
     # load the world
     missionXML = getMissionXML()
     my_mission = MalmoPython.MissionSpec(missionXML, True)
@@ -128,7 +131,7 @@ def samePoint(p1, p2):
     return int(p1[0]) == int(p2[0]) and int(p1[1]) == int(p2[1]) and int(p1[2]) == int(p2[2])
 
 def waitForSensor(agent_host, tp):
-    # print "waiting for sensor at: {} {} {}".format(tp[0], tp[1], tp[2])
+    print "waiting for sensor at: {} {} {}".format(tp[0], tp[1], tp[2])
     while True:
         sys.stdout.write(".")
         time.sleep(0.1)
@@ -144,6 +147,7 @@ def waitForSensor(agent_host, tp):
             return grid
 
 def makeMap(agent_host, world_state, tps):
+    print("making map")
     # unpack start position to useful data type (integer)
     x, y, z, _ = map(int, startPos)
     # if(x < 0): x = x - 1
@@ -157,6 +161,7 @@ def makeMap(agent_host, world_state, tps):
     maxZ = z + numPillars + obsDims[2]*(2*numPillars + 1)
 
     textMap = levelMap(minX, minY, minZ, maxX, maxY, maxZ)
+    print(textMap.getSize())
 
     for i in range(len(tps)):
         for j in range(len(tps[0])):
@@ -165,7 +170,7 @@ def makeMap(agent_host, world_state, tps):
                 agent_host.sendCommand("tp {} {} {}".format(tp[0], tp[1], tp[2]))
                 grid = waitForSensor(agent_host, tp)
                 textMap.observationDump(grid, tp, obsDims)
-    print textMap.debugPrint()
+    # print textMap.debugPrint()
 
 def runSearch(agent_host, world_state):
     return

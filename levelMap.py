@@ -15,6 +15,9 @@ class levelMap:
 
         self.data = [[["" for k in xrange(self.zLen)] for j in xrange(self.yLen)] for i in xrange(self.xLen)]
 
+    def getSize(self):
+        return (len(self.data), len(self.data[0]), len(self.data[0][0]))
+
     def debugPrint(self):
         # size = "size [x][y][z]: {} {} {}".format(len(self.data), len(self.data[0]), len(self.data[0][0]))
         # mins = "mins [x][y][z]: {} {} {}".format(self.minX, self.minY, self.minZ)
