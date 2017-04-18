@@ -41,10 +41,35 @@ def getMissionXML(mapping, start, obs):
       </AgentSection>
     </Mission>'''
 
+def createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatforms):
+    # unpack start position to useful data type (integer)
+    x, y, z, _ = map(int, startPos)
+    if(x < 0): x = x - 1
+    if(z < 0): z = z - 1
+
+    strtX = x - numPillars - obsDims[0]*2*numPillars
+    stopX = x + numPillars + obsDims[0]*2*numPillars + 1
+    stepX = obsDims[0] * 2 + 1
+
+    strtZ = z - numPillars - obsDims[2]*2*numPillars
+    stopZ = z + numPillars + obsDims[2]*2*numPillars + 1
+    stepZ = obsDims[2] * 2 + 1
+
+    tplocs = []
+    for ex in range(strtX, stopX, stepX):
+        for why in range(-numPlatforms, numPlatforms + 1, 1):
+            for zee in range(strtZ, stopZ, stepZ):
+                tplocs.append((x+0.5, y + y*obsDims[1], z+0.5))
+
+    return tplocs
+
 def initMalmo(mapping, startPos, obsDims, numPillars, numPlatforms):
     # load the world
     missionXML = getMissionXML(mapping, startPos, obsDims)
     my_mission = MalmoPython.MissionSpec(missionXML, True)
+    if(mapping):
+        my_mission.setModeToSpectator()
+        createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatforms)
 
     # create default malmo objects
     agent_host = MalmoPython.AgentHost()
@@ -83,10 +108,16 @@ def initMalmo(mapping, startPos, obsDims, numPillars, numPlatforms):
 def main():
     #world recording parameters
     startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
+    # startPos = [200.5, 100.0, 200.5, 90.0] #  +/+
+    # startPos = [-200.5, 100.0, -200.5, 90.0] # -/-
+    # startPos = [200.5, 100.0, -200.5, 90.0] # +/- --> x down, z down
+    # startPos = [-200.5, 100.0, 200.5, 90.0] # -/+
+
+
     obsDims = [5, 1, 5]
     mapping = True
-    numPillars = 2 #spaces observed = -O3--O2--O1--O2--O3-
-    numPlatforms = 3
+    numPillars = 1 #spaces observed = -O3--O2--O1--O2--O3-
+    numPlatforms = 1
 
     # Loading world, initializing malmo
     agent_host, world_state = initMalmo(mapping, startPos, obsDims, numPillars, numPlatforms)
@@ -96,7 +127,7 @@ def main():
         sys.stdout.write(".")
         time.sleep(0.1)
         world_state = agent_host.getWorldState()
-        agent_host.sendCommand("tp 100 100 100")
+        # agent_host.sendCommand("tp 100 100 100")
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 main()
