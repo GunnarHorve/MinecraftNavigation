@@ -58,3 +58,19 @@ class levelMap:
 
             self.insert(obs[i], x, y, z)
             # print(x,y,z, self.minX, self.minY, self.minZ, self.maxX, self.maxY, self.maxZ)
+
+    def text2bool(self):
+        print("converting string array into boolean array")
+        tmp = [[[0 for k in xrange(self.zLen)] for j in xrange(self.yLen)] for i in xrange(self.xLen)]
+
+        size = self.getSize()
+        for x in range(1,size[0]-1):
+            for y in range(1,size[1]-1):
+                for z in range(1,size[2]-1):
+                    bot = self.data[x][y-1][z]
+                    cur = self.data[x][y][z]
+                    top = self.data[x][y+1][z]
+
+                    if(cur is "air" and top is "air" and bot is not "air"):
+                        tmp[x][y][z] = 1
+        self.data = tmp

@@ -4,13 +4,15 @@ import sys
 import time
 import json
 from levelMap import levelMap
+import cPickle as pickle
 
 #world recording parameters
 startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
 obsDims = [50,3,50]
-mapping = True
+mapping = False
 numPillars = 2 #spaces observed = -O3--O2--O1--O2--O3-
 numPlatfms = 3
+saveFile = "save.p"
 
 def getMissionXML():
     print("creating mission xml")
@@ -160,8 +162,8 @@ def makeMap(agent_host, world_state, tps):
     minZ = z - numPillars - obsDims[2]*(2*numPillars + 1)
     maxZ = z + numPillars + obsDims[2]*(2*numPillars + 1)
 
-    textMap = levelMap(minX, minY, minZ, maxX, maxY, maxZ)
-    print(textMap.getSize())
+    dataMap = levelMap(minX, minY, minZ, maxX, maxY, maxZ)
+    print(dataMap.getSize())
 
     for i in range(len(tps)):
         for j in range(len(tps[0])):
@@ -169,10 +171,15 @@ def makeMap(agent_host, world_state, tps):
                 tp = tps[i][j][k]
                 agent_host.sendCommand("tp {} {} {}".format(tp[0], tp[1], tp[2]))
                 grid = waitForSensor(agent_host, tp)
-                textMap.observationDump(grid, tp, obsDims)
-    # print textMap.debugPrint()
+                dataMap.observationDump(grid, tp, obsDims)
+    dataMap.text2bool()
+    print("making pickles")
+    pickle.dump(dataMap, open(saveFile, "wb"))
+    print("finished creating and saving map")
 
-def runSearch(agent_host, world_state):
+def runSearch(agent_host, world_state, dataMap):
+    print("running search")
+    print(dataMap.getSize())
     return
 
 def main():
@@ -182,7 +189,9 @@ def main():
     if(mapping):
         makeMap(agent_host, world_state, tps)
     else:
-        runSearch(agent_host, world_state)
+        print("opening jar of pickles")
+        dataMap = pickle.load(open( "save.p", "rb"))
+        runSearch(agent_host, world_state, dataMap)
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 main()
