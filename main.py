@@ -3,17 +3,25 @@ import os
 import sys
 import time
 import json
+from levelMap import levelMap
 
-def getMissionXML(mapping, start, obs):
+#world recording parameters
+startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
+obsDims = [5, 1, 5]
+mapping = True
+numPillars = 1 #spaces observed = -O3--O2--O1--O2--O3-
+numPlatfms = 1
+
+def getMissionXML():
     obsString = ""
     if(mapping):
         open = '<ObservationFromGrid><Grid name="sliceObserver">'
-        min = '<min x="{}" y="{}" z="{}"/>'.format(-obs[0], -obs[1], -obs[2])
-        max = '<max x="{}" y="{}" z="{}"/>'.format(obs[0], obs[1], obs[2])
+        min = '<min x="{}" y="{}" z="{}"/>'.format(-obsDims[0], -obsDims[1], -obsDims[2])
+        max = '<max x="{}" y="{}" z="{}"/>'.format(obsDims[0], obsDims[1], obsDims[2])
         end = '</Grid></ObservationFromGrid>'
         obsString = open + min + max + end
 
-    startString = '<Placement x="{}" y="{}" z="{}" yaw="{}"/>'.format(start[0], start[1], start[2], start[3])
+    startString = '<Placement x="{}" y="{}" z="{}" yaw="{}"/>'.format(startPos[0], startPos[1], startPos[2], startPos[3])
 
     return '''<?xml version="1.0" encoding="UTF-8" ?>
     <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -41,7 +49,7 @@ def getMissionXML(mapping, start, obs):
       </AgentSection>
     </Mission>'''
 
-def createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatfms):
+def createTPLocs(my_mission):
     # unpack start position to useful data type (integer)
     x, y, z, _ = map(int, startPos)
     if(x < 0): x = x - 1
@@ -74,13 +82,13 @@ def createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatfms):
 
     return tplocs
 
-def initMalmo(mapping, startPos, obsDims, numPillars, numPlatfms):
+def initMalmo():
     # load the world
-    missionXML = getMissionXML(mapping, startPos, obsDims)
+    missionXML = getMissionXML()
     my_mission = MalmoPython.MissionSpec(missionXML, True)
     if(mapping):
         my_mission.setModeToSpectator()
-        tps = createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatfms)
+        tps = createTPLocs(my_mission)
     else:
         tps = -1
 
@@ -135,7 +143,7 @@ def waitForSensor(agent_host, tp):
             grid = obs.get(u'sliceObserver', 0)
             return grid
 
-def makeMap(agent_host, world_state, tps, startPos, obsDims, numPillars, numPlatfms):
+def makeMap(agent_host, world_state, tps):
     # unpack start position to useful data type (integer)
     x, y, z, _ = map(int, startPos)
     if(x < 0): x = x - 1
@@ -148,8 +156,7 @@ def makeMap(agent_host, world_state, tps, startPos, obsDims, numPillars, numPlat
     minZ = z - numPlatfms - obsDims[2]*(2*numPillars + 1)
     maxZ = z + numPlatfms + obsDims[2]*(2*numPillars + 1) + 1
 
-    textMap = levelMap(minX, minY, minZ, maxX, maxY, maxZ) #TODO, import this
-    return
+    textMap = levelMap(minX, minY, minZ, maxX, maxY, maxZ)
 
     for i in range(len(tps)):
         for j in range(len(tps[0])):
@@ -157,25 +164,17 @@ def makeMap(agent_host, world_state, tps, startPos, obsDims, numPillars, numPlat
                 tp = tps[i][j][k]
                 agent_host.sendCommand("tp {} {} {}".format(tp[0], tp[1], tp[2]))
                 grid = waitForSensor(agent_host, tp)
-                # sys.stdout.write(" {}\n".format(len(grid)))
+                textMap.observationDump(grid, tp, obsDims)
 
 def runSearch(agent_host, world_state):
     return
 
 def main():
-    #world recording parameters
-    startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
-
-    obsDims = [5, 1, 5]
-    mapping = True
-    numPillars = 1 #spaces observed = -O3--O2--O1--O2--O3-
-    numPlatfms = 1
-
     # Loading world, initializing malmo
-    agent_host, world_state, tps = initMalmo(mapping, startPos, obsDims, numPillars, numPlatfms)
+    agent_host, world_state, tps = initMalmo()
 
     if(mapping):
-        makeMap(agent_host, world_state, tps, startPos, obsDims, numPillars, numPlatfms)
+        makeMap(agent_host, world_state, tps)
     else:
         runSearch(agent_host, world_state)
 

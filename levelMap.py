@@ -1,5 +1,6 @@
 class levelMap:
     def __init__(self, minX, minY, minZ, maxX, maxY, maxZ):
+        # given
         self.minX = minX
         self.minY = minY
         self.minZ = minZ
@@ -7,9 +8,25 @@ class levelMap:
         self.maxY = maxY
         self.maxZ = maxZ
 
+        # derived
+        self.xLen = self.maxX - self.minX
+        self.yLen = self.maxY - self.minY
+        self.zLen = self.maxZ - self.minZ
+
+        self.data = [[["" for k in xrange(self.zLen)] for j in xrange(self.yLen)] for i in xrange(self.xLen)]
         self.debugPrint()
 
-    def debugPrint():
-        tmp = "size [x][y][z]: {} {} {}".format(self.maxX - self.minX, self.maxY - self.minY, self.maxZ - self.minZ)
+    def debugPrint(self):
+        size = "size [x][y][z]: {} {} {}".format(len(self.data), len(self.data[0]), len(self.data[0][0]))
+        mins = "mins [x][y][z]: {} {} {}".format(self.minX, self.minY, self.minZ)
+        maxs = "maxs [x][y][z]: {} {} {}".format(self.maxX, self.maxY, self.maxZ)
+        print size
+        print mins
+        print maxs
 
-#    textMap = [[["" for k in xrange(2*numPillars + 1)] for j in xrange(2*numPlatforms + 1)] for i in xrange(2*numPillars + 1)]
+    def observationDump(self, obs, tp, obsDims):
+        x, y, z = map(int, tp)
+        if(x < 0): x = x - 1
+        if(z < 0): z = z - 1
+
+        print "You've given me an array of length {}.  The hell do I do with this?".format(len(obs))
