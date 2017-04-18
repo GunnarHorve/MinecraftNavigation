@@ -41,7 +41,7 @@ def getMissionXML(mapping, start, obs):
       </AgentSection>
     </Mission>'''
 
-def createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatforms):
+def createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatfms):
     # unpack start position to useful data type (integer)
     x, y, z, _ = map(int, startPos)
     if(x < 0): x = x - 1
@@ -51,15 +51,15 @@ def createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatforms):
     stopX = x + numPillars + obsDims[0]*2*numPillars + 1
     stepX = obsDims[0] * 2 + 1
 
-    strtY = y - numPlatforms
-    stopY = y + numPlatforms + 1
-    stepY = 1
+    strtY = y - numPlatfms - obsDims[1]*2*numPlatfms
+    stopY = y + numPlatfms + obsDims[1]*2*numPlatfms + 1
+    stepY = obsDims[1] * 2 + 1
 
     strtZ = z - numPillars - obsDims[2]*2*numPillars
     stopZ = z + numPillars + obsDims[2]*2*numPillars + 1
     stepZ = obsDims[2] * 2 + 1
 
-    tplocs = [[[(0,0,0) for k in xrange(2*numPillars + 1)] for j in xrange(2*numPlatforms + 1)] for i in xrange(2*numPillars + 1)]
+    tplocs = [[[(0,0,0) for k in xrange(2*numPillars + 1)] for j in xrange(2*numPlatfms + 1)] for i in xrange(2*numPillars + 1)]
 
     x = 0
     for i in range(strtX, stopX, stepX):
@@ -74,13 +74,13 @@ def createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatforms):
 
     return tplocs
 
-def initMalmo(mapping, startPos, obsDims, numPillars, numPlatforms):
+def initMalmo(mapping, startPos, obsDims, numPillars, numPlatfms):
     # load the world
     missionXML = getMissionXML(mapping, startPos, obsDims)
     my_mission = MalmoPython.MissionSpec(missionXML, True)
     if(mapping):
         my_mission.setModeToSpectator()
-        tps = createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatforms)
+        tps = createTPLocs(my_mission, startPos, obsDims, numPillars, numPlatfms)
     else:
         tps = -1
 
@@ -135,18 +135,31 @@ def waitForSensor(agent_host, tp):
             grid = obs.get(u'sliceObserver', 0)
             return grid
 
-def makeMap(agent_host, world_state, tps):
-    # loop through all teleport locations
+def makeMap(agent_host, world_state, tps, startPos, obsDims, numPillars, numPlatfms):
+    # unpack start position to useful data type (integer)
+    x, y, z, _ = map(int, startPos)
+    if(x < 0): x = x - 1
+    if(z < 0): z = z - 1
+
+    minX = x - numPillars - obsDims[0]*(2*numPillars + 1)
+    maxX = x + numPillars + obsDims[0]*(2*numPillars + 1) + 1
+    minY = y - numPlatfms - obsDims[1]*(2*numPlatfms + 1)
+    maxY = y + numPlatfms + obsDims[1]*(2*numPlatfms + 1) + 1
+    minZ = z - numPlatfms - obsDims[2]*(2*numPillars + 1)
+    maxZ = z + numPlatfms + obsDims[2]*(2*numPillars + 1) + 1
+
+    textMap = levelMap(minX, minY, minZ, maxX, maxY, maxZ) #TODO, import this
+    return
+
     for i in range(len(tps)):
         for j in range(len(tps[0])):
             for k in range(len(tps[0][0])):
                 tp = tps[i][j][k]
                 agent_host.sendCommand("tp {} {} {}".format(tp[0], tp[1], tp[2]))
                 grid = waitForSensor(agent_host, tp)
-                sys.stdout.write(" {}\n".format(len(grid)))
+                # sys.stdout.write(" {}\n".format(len(grid)))
 
 def runSearch(agent_host, world_state):
-    # agent_host.sendCommand("tp 100 100 100")
     return
 
 def main():
@@ -155,14 +168,14 @@ def main():
 
     obsDims = [5, 1, 5]
     mapping = True
-    numPillars = 2 #spaces observed = -O3--O2--O1--O2--O3-
-    numPlatforms = 3
+    numPillars = 1 #spaces observed = -O3--O2--O1--O2--O3-
+    numPlatfms = 1
 
     # Loading world, initializing malmo
-    agent_host, world_state, tps = initMalmo(mapping, startPos, obsDims, numPillars, numPlatforms)
+    agent_host, world_state, tps = initMalmo(mapping, startPos, obsDims, numPillars, numPlatfms)
 
     if(mapping):
-        makeMap(agent_host, world_state, tps)
+        makeMap(agent_host, world_state, tps, startPos, obsDims, numPillars, numPlatfms)
     else:
         runSearch(agent_host, world_state)
 
