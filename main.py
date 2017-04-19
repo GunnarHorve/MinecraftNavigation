@@ -5,13 +5,14 @@ import time
 import json
 from levelMap import levelMap
 import cPickle as pickle
+import A_star
 
 #world recording parameters
 startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
-obsDims = [50,3,50]
-mapping = False
-numPillars = 2 #spaces observed = -O3--O2--O1--O2--O3-
-numPlatfms = 3
+obsDims = [10,3,10] # [50, 3, 5]
+mapping = True
+numPillars = 0 #2     #spaces observed = -O3--O2--O1--O2--O3-
+numPlatfms = 0 #3
 saveFile = "save.p"
 
 def getMissionXML():
@@ -152,8 +153,6 @@ def makeMap(agent_host, world_state, tps):
     print("making map")
     # unpack start position to useful data type (integer)
     x, y, z, _ = map(int, startPos)
-    # if(x < 0): x = x - 1
-    # if(z < 0): z = z - 1
 
     minX = x - numPillars - obsDims[0]*(2*numPillars + 1)
     maxX = x + numPillars + obsDims[0]*(2*numPillars + 1)
@@ -179,8 +178,11 @@ def makeMap(agent_host, world_state, tps):
 
 def runSearch(agent_host, world_state, dataMap):
     print("running search")
-    print(dataMap.getSize())
-    return
+    start = dataMap.indexFromPoint((startPos[0], startPos[1], startPos[2]))
+    end = dataMap.indexFromPoint((startPos[0] + 2, startPos[1], startPos[2]))
+    path = A_star.search(start, end, dataMap.data)
+    print path
+    print dataMap.debugPrint()
 
 def main():
     # Loading world, initializing malmo

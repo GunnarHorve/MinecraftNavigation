@@ -19,25 +19,19 @@ class levelMap:
         return (len(self.data), len(self.data[0]), len(self.data[0][0]))
 
     def debugPrint(self):
-        # size = "size [x][y][z]: {} {} {}".format(len(self.data), len(self.data[0]), len(self.data[0][0]))
-        # mins = "mins [x][y][z]: {} {} {}".format(self.minX, self.minY, self.minZ)
-        # maxs = "maxs [x][y][z]: {} {} {}".format(self.maxX, self.maxY, self.maxZ)
-        # import pprint
-        # pprint.pprint(self.data)
-        for i in range(len(self.data)):
-            for j in range(len(self.data[0])):
-                for k in range(len(self.data[0][0])):
-                    print(self.data[i][j][k])
-                    if self.data[i][j][k] == "":
-                        print("you done fucked up now {} {} {}".format(i,j,k))
-        return
+        import pprint
+        pprint.pprint(self.data)
 
-    def insert(self, val, x, y, z):
+    def indexFromPoint(self, point):
+        x, y, z = map(int, point)
         xPos = self.xLen - (self.maxX - x) - 1
         yPos = self.yLen - (self.maxY - y) - 1
         zPos = self.zLen - (self.maxZ - z) - 1
-        self.data[xPos][yPos][zPos] = val
-        # print val
+        return (xPos, yPos, zPos)
+
+    def insert(self, val, x, y, z):
+        index = self.indexFromPoint((x,y,z))
+        self.data[index[0]][index[1]][index[2]] = val
 
     # note:  variables in this section (sans x,y,z) are relative to the observation
     def observationDump(self, obs, tp, obsDims):
@@ -57,7 +51,6 @@ class levelMap:
             z = zMin + (i // (xLen)) % zLen
 
             self.insert(obs[i], x, y, z)
-            # print(x,y,z, self.minX, self.minY, self.minZ, self.maxX, self.maxY, self.maxZ)
 
     def text2bool(self):
         print("converting string array into boolean array")
