@@ -181,21 +181,43 @@ def main():
         print("making pickles")
         pickle.dump(dataMap, open(saveFile, "wb"))
     else:
-        print("opening jar of pickles")
-        dataMap = pickle.load(open( "save.p", "rb"))
+        searchTesting(agent_host)
 
-        start = dataMap.indexFromPoint((252, 68, -214))
-        # end = dataMap.indexFromPoint((138, 84, -160))
+def searchTesting(agent_host):
+    #load saved map
+    print("opening jar of pickles")
+    dataMap = pickle.load(open("save.p", "rb"))
+    print("begin testing in earnest")
 
-        dm = dataMap.getDepthMap()
-        tmp = dataMap.indexFromPoint((452, 84, -414))
-        end = (tmp[0], dm[tmp[0]][tmp[2]], tmp[2])
+    start = dataMap.indexFromPoint(startPos)
+    dm = dataMap.getDepthMap()
 
-        path = A_star.search(start, end, dataMap.data)
-        if path:
-            walkPath(agent_host, path)
-        else:
-            print("we didn't find shit")
+    # run A* 40^2 times, each time to a different point
+    t0 = time.time()
+    count = 1
+    for i in range(-200, 200, 10):
+        for j in range(-200, 200, 10):
+            tmp = dataMap.indexFromPoint((startPos[0] + i, startPos[1], startPos[2] + j))
+            end = (tmp[0], dm[tmp[0]][tmp[2]], tmp[2])          #search goal (per for loops)
+
+            t = time.time()                                     #store timestamp
+            path = A_star.search(start, end, dataMap.data, 15)  #15 second timeout
+
+            # print results thus far
+            if(path):
+                s = "{},{}:  |  Ellapsed: {:f}  |  Current:  {:f}  |  Percentage:  {:f}%  |"
+                print s.format(i, j, time.time() - t0, time.time() - t, count/1600.)
+            else:
+                s = "{},{}:  |  Ellapsed: {:f}  |  TIME ELLAPSED  |  Percentage:  {:f}%  |"
+                print s.format(i, j, time.time() - t0, count/1600.)
+            count = count + 1
+
+
+
+                # if path:
+    #     walkPath(agent_host, path)
+    # else:
+    #     print("we didn't find shit")
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 main()

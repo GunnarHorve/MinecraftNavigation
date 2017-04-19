@@ -3,6 +3,7 @@
 import Queue
 from collections import defaultdict
 import math
+import time
 
 class PriorityQueue:
     def __init__(self):
@@ -45,17 +46,20 @@ class Node:
                     nodes.append(Node(pos, g, f, par, dir))
         return nodes
 
-def search(startPos, endPos, data):
+def search(startPos, endPos, data, timeout):
+    t = time.time()
+
     pq = PriorityQueue()
     visited = defaultdict(lambda: False)
 
     n = Node(startPos, 0, manhattan(startPos, endPos), None, None)
     pq.push(n, n.f)
     while(n.pos != endPos):
-        if pq.empty(): return			# give up and go home
-        n = pq.pop() 					# get next node
 
-        if(visited[n.pos]): continue 	# check if already visited
+        if pq.empty() or time.time() - t > timeout: return  # give up and go home
+        n = pq.pop() 					                    # get next node
+
+        if(visited[n.pos]): continue 	                    # check if already visited
         visited[n.pos] = True
 
         for child in n.expand(data, endPos):
