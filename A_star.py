@@ -26,11 +26,14 @@ class Node:
 		self.par = par		# parent pointer
 		self.dir = dir		# (xDir, yDir, zDir) tuple. (how parent arrived)
 
-	def expand(self, data, endPos): 		#27 neighbor expansion
+	def expand(self, data, endPos):	#12 neighbor expansion (3 layered plus signs)
 		nodes = []
 		for x in range(-1,2):
 			for y in range(-1,2):
 				for z in range(-1,2):
+					# diagonal x/z movement or pure vertical movement is forbidden
+					if(abs(x) + abs(z) == 2 or abs(x) + abs(z) == 0): continue
+
 					pos = (self.pos[0] + x, self.pos[1] + y, self.pos[2] + z)
 
 					if(outOfBounds(pos, data)): continue			#out of bounds
@@ -65,7 +68,7 @@ def search(startPos, endPos, data):
 def buildPath(n):
 	path = []
 	while(n.par):
-		path.append(n.dir)
+		path.insert(0, n.dir)
 		n = n.par
 	return path
 

@@ -11,8 +11,8 @@ import A_star
 startPos = [252.5, 68.0, -214.5] # x,y,z
 obsDims = [10,3,10] # [50, 3, 5]
 mapping = False
-numPillars = 0 #2     #spaces observed = -O3--O2--O1--O2--O3-
-numPlatfms = 0 #3
+numPillars = 2 #2     #spaces observed = -O3--O2--O1--O2--O3-
+numPlatfms = 3 #3
 saveFile = "save.p"
 
 def getMissionXML():
@@ -182,16 +182,21 @@ def preSearchSanitize(point):
     if(z < 0): z = z - 1
     return (x,y,z)
 
-def runSearch(agent_host, world_state, dataMap):
-    print("running search")
+def walkPath(agent_host, path):
+    commands = [["movenorth","movesouth"],["movewest","moveeast"]]
+    for i in range(len(path)):
+        step = path[i]
+        agent_host.sendCommand(commands[step[0]][step[2]])
+        time.sleep(1/4.317)
 
+def runSearch(agent_host, dataMap):
+    print("running search")
     start = dataMap.indexFromPoint(preSearchSanitize(startPos))
-    end = preSearchSanitize((startPos[0], startPos[1]-1, startPos[2]+2))
+    end = preSearchSanitize((217.5, 67.0, -203.5))
     end = dataMap.indexFromPoint(end)
     path = A_star.search(start, end, dataMap.data)
-    print path
 
-    # print dataMap.debugPrint()
+    walkPath(agent_host, path)
 
 def main():
     # Loading world, initializing malmo
@@ -202,7 +207,7 @@ def main():
     else:
         print("opening jar of pickles")
         dataMap = pickle.load(open( "save.p", "rb"))
-        runSearch(agent_host, world_state, dataMap)
+        runSearch(agent_host, dataMap)
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 main()
