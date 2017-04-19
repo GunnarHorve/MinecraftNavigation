@@ -64,6 +64,6 @@ class levelMap:
                     cur = self.data[x][y][z]
                     top = self.data[x][y+1][z]
 
-                    if(cur is "air" and top is "air" and bot is not "air"):
+                    if(cur == "air" and top == "air" and bot != "air"):
                         tmp[x][y][z] = 1
         self.data = tmp

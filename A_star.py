@@ -26,11 +26,11 @@ class Node:
 		self.par = par		# parent pointer
 		self.dir = dir		# (xDir, yDir, zDir) tuple. (how parent arrived)
 
-	def expand(self, data): 		#27 neighbor expansion
+	def expand(self, data, endPos): 		#27 neighbor expansion
 		nodes = []
-		for x in range(-1,1):
-			for y in range(-1,1):
-				for z in range(-1,1):
+		for x in range(-1,2):
+			for y in range(-1,2):
+				for z in range(-1,2):
 					pos = (self.pos[0] + x, self.pos[1] + y, self.pos[2] + z)
 
 					if(outOfBounds(pos, data)): continue			#out of bounds
@@ -48,25 +48,26 @@ def search(startPos, endPos, data):
 	visited = defaultdict(lambda: False)
 
 	n = Node(startPos, 0, manhattan(startPos, endPos), None, None)
-	while(n.pos is not endPos):
-		if(visited[n.pos]): 	# check if already visited
-			continue
+	pq.push(n, n.f)
+	while(n.pos != endPos):
+		if pq.empty(): return			# give up and go home
+		n = pq.pop() 					# get next node
+
+		if(visited[n.pos]): continue 	# check if already visited
 		visited[n.pos] = True
 
-		for child in n.expand(data):
+		for child in n.expand(data, endPos):
 			pq.push(child, child.f)
-
-		if pq.empty(): return	# give up and go home
-		n = pq.pop() 			# get next node
 
 	return buildPath(n)
 
 ##### Helper Methods #####
 def buildPath(n):
 	path = []
-	while(n.parent):
+	while(n.par):
 		path.append(n.dir)
 		n = n.par
+	return path
 
 def outOfBounds(pos, data):
 	t1 = pos[0] < 0

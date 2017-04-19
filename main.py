@@ -10,7 +10,7 @@ import A_star
 #world recording parameters
 startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
 obsDims = [10,3,10] # [50, 3, 5]
-mapping = True
+mapping = False
 numPillars = 0 #2     #spaces observed = -O3--O2--O1--O2--O3-
 numPlatfms = 0 #3
 saveFile = "save.p"
@@ -36,7 +36,7 @@ def getMissionXML():
 
       <ServerSection>
         <ServerHandlers>
-          <DefaultWorldGenerator seed="1680538402529060016" forceReset="true" />
+          <DefaultWorldGenerator seed="1680538402529060016" forceReset="false" />
           <ServerQuitWhenAnyAgentFinishes/>
         </ServerHandlers>
       </ServerSection>
@@ -179,10 +179,10 @@ def makeMap(agent_host, world_state, tps):
 def runSearch(agent_host, world_state, dataMap):
     print("running search")
     start = dataMap.indexFromPoint((startPos[0], startPos[1], startPos[2]))
-    end = dataMap.indexFromPoint((startPos[0] + 2, startPos[1], startPos[2]))
+    end = dataMap.indexFromPoint((startPos[0] + 1, startPos[1], startPos[2] - 5))
     path = A_star.search(start, end, dataMap.data)
     print path
-    print dataMap.debugPrint()
+    # print dataMap.debugPrint()
 
 def main():
     # Loading world, initializing malmo
