@@ -8,7 +8,7 @@ import cPickle as pickle
 import A_star
 
 #world recording parameters
-startPos = [252.5, 68.0, -214.5, 90.0] # x,y,z,yaw
+startPos = [252.5, 68.0, -214.5] # x,y,z
 obsDims = [10,3,10] # [50, 3, 5]
 mapping = False
 numPillars = 0 #2     #spaces observed = -O3--O2--O1--O2--O3-
@@ -25,7 +25,7 @@ def getMissionXML():
         end = '</Grid></ObservationFromGrid>'
         obsString = open + min + max + end
 
-    startString = '<Placement x="{}" y="{}" z="{}" yaw="{}"/>'.format(startPos[0], startPos[1], startPos[2], startPos[3])
+    startString = '<Placement x="{}" y="{}" z="{}" yaw="90"/>'.format(startPos[0], startPos[1], startPos[2])
 
     return '''<?xml version="1.0" encoding="UTF-8" ?>
     <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -56,7 +56,7 @@ def getMissionXML():
 def createTPLocs(my_mission):
     print("calculating teleport locations")
     # unpack start position to useful data type (integer)
-    x, y, z, _ = map(int, startPos)
+    x, y, z = map(int, startPos)
     if(x < 0): x = x - 1
     if(z < 0): z = z - 1
 
@@ -152,7 +152,7 @@ def waitForSensor(agent_host, tp):
 def makeMap(agent_host, world_state, tps):
     print("making map")
     # unpack start position to useful data type (integer)
-    x, y, z, _ = map(int, startPos)
+    x, y, z = map(int, startPos)
 
     minX = x - numPillars - obsDims[0]*(2*numPillars + 1)
     maxX = x + numPillars + obsDims[0]*(2*numPillars + 1)
@@ -176,12 +176,21 @@ def makeMap(agent_host, world_state, tps):
     pickle.dump(dataMap, open(saveFile, "wb"))
     print("finished creating and saving map")
 
+def preSearchSanitize(point):
+    x, y, z = map(int, point)
+    if(x < 0): x = x - 1
+    if(z < 0): z = z - 1
+    return (x,y,z)
+
 def runSearch(agent_host, world_state, dataMap):
     print("running search")
-    start = dataMap.indexFromPoint((startPos[0], startPos[1], startPos[2]))
-    end = dataMap.indexFromPoint((startPos[0] + 1, startPos[1], startPos[2] - 5))
+
+    start = dataMap.indexFromPoint(preSearchSanitize(startPos))
+    end = preSearchSanitize((startPos[0], startPos[1]-1, startPos[2]+2))
+    end = dataMap.indexFromPoint(end)
     path = A_star.search(start, end, dataMap.data)
     print path
+
     # print dataMap.debugPrint()
 
 def main():
