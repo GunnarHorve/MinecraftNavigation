@@ -1,17 +1,14 @@
 class levelMap:
     def __init__(self, minX, minY, minZ, maxX, maxY, maxZ):
         # given
-        self.minX = minX
-        self.minY = minY
-        self.minZ = minZ
         self.maxX = maxX
         self.maxY = maxY
         self.maxZ = maxZ
 
         # derived
-        self.xLen = self.maxX - self.minX + 1
-        self.yLen = self.maxY - self.minY + 1
-        self.zLen = self.maxZ - self.minZ + 1
+        self.xLen = maxX - minX + 1
+        self.yLen = maxY - minY + 1
+        self.zLen = maxZ - minZ + 1
 
         self.data = [[["" for k in xrange(self.zLen)] for j in xrange(self.yLen)] for i in xrange(self.xLen)]
 
@@ -23,21 +20,19 @@ class levelMap:
         pprint.pprint(self.data)
 
     def indexFromPoint(self, point):
-        x, y, z = map(int, point)
+        x, y, z = point
         xPos = self.xLen - (self.maxX - x) - 1
         yPos = self.yLen - (self.maxY - y) - 1
         zPos = self.zLen - (self.maxZ - z) - 1
         return (xPos, yPos, zPos)
 
-    def insert(self, val, x, y, z):
-        index = self.indexFromPoint((x,y,z))
+    def insert(self, val, point):
+        index = self.indexFromPoint(point)
         self.data[index[0]][index[1]][index[2]] = val
 
     # note:  variables in this section (sans x,y,z) are relative to the observation
     def observationDump(self, obs, tp, obsDims):
-        x, y, z = map(int, tp)
-        if(x < 0): x = x - 1
-        if(z < 0): z = z - 1
+        x, y, z = tp
 
         xMin = x - obsDims[0]
         yMin = y - obsDims[1]
@@ -50,7 +45,7 @@ class levelMap:
             y = yMin +  i // (xLen*zLen)
             z = zMin + (i // (xLen)) % zLen
 
-            self.insert(obs[i], x, y, z)
+            self.insert(obs[i], (x, y, z))
 
     def text2bool(self):
         print("converting string array into boolean array")
@@ -67,3 +62,18 @@ class levelMap:
                     if(cur == "air" and top == "air" and bot != "air"):
                         tmp[x][y][z] = 1
         self.data = tmp
+
+    def getDepthMap(self): #query: x,z -> y
+        tmp = [[0 for j in xrange(self.zLen)] for i in xrange(self.xLen)]
+
+        for x in range(len(self.data)):
+            for y in range(len(self.data[0])):
+                for z in range(len(self.data[0][0])):
+                    if(self.data[x][y][z] == 1):
+                        tmp[x][z] = y
+        # import matplotlib.pyplot as plt
+        # import matplotlib.cm as cm
+        # import numpy as np
+        # plt.imsave('filename.png', np.array(tmp).reshape(50,50), cmap=cm.gray)
+
+        return tmp

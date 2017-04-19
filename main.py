@@ -8,10 +8,10 @@ import cPickle as pickle
 import A_star
 
 #world recording parameters
-startPos = [252.5, 68.0, -214.5] # x,y,z
-obsDims = [10,3,10] # [50, 3, 5]
+startPos = [252, 68, -214] # x,y,z
+obsDims = [50,3,50] # [50, 3, 5]
 mapping = False
-numPillars = 2 #2     #spaces observed = -O3--O2--O1--O2--O3-
+numPillars = 2 #2
 numPlatfms = 3 #3
 saveFile = "save.p"
 
@@ -25,7 +25,7 @@ def getMissionXML():
         end = '</Grid></ObservationFromGrid>'
         obsString = open + min + max + end
 
-    startString = '<Placement x="{}" y="{}" z="{}" yaw="90"/>'.format(startPos[0], startPos[1], startPos[2])
+    startString = '<Placement x="{}" y="{}" z="{}" yaw="90"/>'.format(startPos[0]+.5, startPos[1], startPos[2]+.5)
 
     return '''<?xml version="1.0" encoding="UTF-8" ?>
     <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -53,12 +53,10 @@ def getMissionXML():
       </AgentSection>
     </Mission>'''
 
-def createTPLocs(my_mission):
+def createTPLocs():
     print("calculating teleport locations")
     # unpack start position to useful data type (integer)
-    x, y, z = map(int, startPos)
-    if(x < 0): x = x - 1
-    if(z < 0): z = z - 1
+    x, y, z = startPos
 
     strtX = x - numPillars - obsDims[0]*2*numPillars
     stopX = x + numPillars + obsDims[0]*2*numPillars + 1
@@ -72,18 +70,12 @@ def createTPLocs(my_mission):
     stopZ = z + numPillars + obsDims[2]*2*numPillars + 1
     stepZ = obsDims[2] * 2 + 1
 
-    tplocs = [[[(0,0,0) for k in xrange(2*numPillars + 1)] for j in xrange(2*numPlatfms + 1)] for i in xrange(2*numPillars + 1)]
+    tplocs = []
 
-    x = 0
     for i in range(strtX, stopX, stepX):
-        y = 0
         for j in range(strtY, stopY, stepY):
-            z = 0
             for k in range(strtZ, stopZ, stepZ):
-                tplocs[x][y][z] = (i+.5, j, k+.5)
-                z = z + 1
-            y = y + 1
-        x = x + 1
+                tplocs.append((i, j, k))
 
     return tplocs
 
@@ -94,9 +86,6 @@ def initMalmo():
     my_mission = MalmoPython.MissionSpec(missionXML, True)
     if(mapping):
         my_mission.setModeToSpectator()
-        tps = createTPLocs(my_mission)
-    else:
-        tps = -1
 
     # create default malmo objects
     agent_host = MalmoPython.AgentHost()
@@ -128,7 +117,7 @@ def initMalmo():
     print
     print "Mission running "
 
-    return (agent_host, world_state, tps)
+    return agent_host
 
 def samePoint(p1, p2):
     return int(p1[0]) == int(p2[0]) and int(p1[1]) == int(p2[1]) and int(p1[2]) == int(p2[2])
@@ -136,7 +125,6 @@ def samePoint(p1, p2):
 def waitForSensor(agent_host, tp):
     print "waiting for sensor at: {} {} {}".format(tp[0], tp[1], tp[2])
     while True:
-        sys.stdout.write(".")
         time.sleep(0.1)
 
         world_state = agent_host.getWorldState()
@@ -149,10 +137,10 @@ def waitForSensor(agent_host, tp):
             grid = obs.get(u'sliceObserver', 0)
             return grid
 
-def makeMap(agent_host, world_state, tps):
+def makeMap(agent_host, tps):
     print("making map")
     # unpack start position to useful data type (integer)
-    x, y, z = map(int, startPos)
+    x, y, z = startPos
 
     minX = x - numPillars - obsDims[0]*(2*numPillars + 1)
     maxX = x + numPillars + obsDims[0]*(2*numPillars + 1)
@@ -162,52 +150,52 @@ def makeMap(agent_host, world_state, tps):
     maxZ = z + numPillars + obsDims[2]*(2*numPillars + 1)
 
     dataMap = levelMap(minX, minY, minZ, maxX, maxY, maxZ)
-    print(dataMap.getSize())
 
-    for i in range(len(tps)):
-        for j in range(len(tps[0])):
-            for k in range(len(tps[0][0])):
-                tp = tps[i][j][k]
-                agent_host.sendCommand("tp {} {} {}".format(tp[0], tp[1], tp[2]))
-                grid = waitForSensor(agent_host, tp)
-                dataMap.observationDump(grid, tp, obsDims)
+    for tp in tps:
+            agent_host.sendCommand("tp {} {} {}".format(tp[0]+.5, tp[1], tp[2]+.5))
+            grid = waitForSensor(agent_host, (tp[0]+.5, tp[1], tp[2]+.5))
+            dataMap.observationDump(grid, tp, obsDims)
+
     dataMap.text2bool()
-    print("making pickles")
-    pickle.dump(dataMap, open(saveFile, "wb"))
-    print("finished creating and saving map")
-
-def preSearchSanitize(point):
-    x, y, z = map(int, point)
-    if(x < 0): x = x - 1
-    if(z < 0): z = z - 1
-    return (x,y,z)
+    return dataMap
 
 def walkPath(agent_host, path):
-    commands = [["movenorth","movesouth"],["movewest","moveeast"]]
-    for i in range(len(path)):
-        step = path[i]
-        agent_host.sendCommand(commands[step[0]][step[2]])
-        time.sleep(1/4.317)
-
-def runSearch(agent_host, dataMap):
-    print("running search")
-    start = dataMap.indexFromPoint(preSearchSanitize(startPos))
-    end = preSearchSanitize((217.5, 67.0, -203.5))
-    end = dataMap.indexFromPoint(end)
-    path = A_star.search(start, end, dataMap.data)
-
-    walkPath(agent_host, path)
+    for step in path:
+        print step
+        if(step[0] == 1):
+            agent_host.sendCommand("moveeast")
+        elif step[0] == -1:
+            agent_host.sendCommand("movewest")
+        elif step[2] == 1:
+            agent_host.sendCommand("movesouth")
+        elif step[2] == -1:
+            agent_host.sendCommand("movenorth")
+        time.sleep(1/4.317) #walking speed
 
 def main():
     # Loading world, initializing malmo
-    agent_host, world_state, tps = initMalmo()
+    agent_host = initMalmo()
 
     if(mapping):
-        makeMap(agent_host, world_state, tps)
+        dataMap = makeMap(agent_host, createTPLocs())
+        print("making pickles")
+        pickle.dump(dataMap, open(saveFile, "wb"))
     else:
         print("opening jar of pickles")
         dataMap = pickle.load(open( "save.p", "rb"))
-        runSearch(agent_host, dataMap)
+
+        start = dataMap.indexFromPoint((252, 68, -214))
+        # end = dataMap.indexFromPoint((138, 84, -160))
+
+        dm = dataMap.getDepthMap()
+        tmp = dataMap.indexFromPoint((452, 84, -414))
+        end = (tmp[0], dm[tmp[0]][tmp[2]], tmp[2])
+
+        path = A_star.search(start, end, dataMap.data)
+        if path:
+            walkPath(agent_host, path)
+        else:
+            print("we didn't find shit")
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 main()
