@@ -3,9 +3,15 @@ import os
 import sys
 import time
 import json
-from levelMap import levelMap
+
 import cPickle as pickle
+import random
+from scipy.spatial import KDTree
+
+from levelMap import levelMap
 import A_star
+import A_star_graph
+
 
 #world recording parameters
 startPos = [252, 68, -214] # x,y,z
@@ -172,25 +178,11 @@ def walkPath(agent_host, path):
             agent_host.sendCommand("movenorth")
         time.sleep(1/4.317) #walking speed
 
-def main():
-    # Loading world, initializing malmo
-    agent_host = initMalmo()
+def searchTesting(dataMap, depthMap):
+    results = []
 
-    if(mapping):
-        dataMap = makeMap(agent_host, createTPLocs())
-        print("making pickles")
-        pickle.dump(dataMap, open(saveFile, "wb"))
-    else:
-        searchTesting(agent_host)
-
-def searchTesting(agent_host):
     #load saved map
-    print("opening jar of pickles")
-    dataMap = pickle.load(open("save.p", "rb"))
-    print("begin testing in earnest")
-
     start = dataMap.indexFromPoint(startPos)
-    dm = dataMap.getDepthMap()
 
     # run A* 40^2 times, each time to a different point
     t0 = time.time()
@@ -198,26 +190,92 @@ def searchTesting(agent_host):
     for i in range(-200, 200, 10):
         for j in range(-200, 200, 10):
             tmp = dataMap.indexFromPoint((startPos[0] + i, startPos[1], startPos[2] + j))
-            end = (tmp[0], dm[tmp[0]][tmp[2]], tmp[2])          #search goal (per for loops)
+            end = (tmp[0], depthMap[tmp[0]][tmp[2]], tmp[2])          #search goal (per for loops)
 
             t = time.time()                                     #store timestamp
             path = A_star.search(start, end, dataMap.data, 15)  #15 second timeout
 
             # print results thus far
+            # if(path):
+            #     s = "{},{}:  |  Ellapsed: {:f}  |  Current:  {:f}  |  Percentage:  {:f}%  |"
+            #     print s.format(i, j, time.time() - t0, time.time() - t, count/16.)
+            # else:
+            #     s = "{},{}:  |  Ellapsed: {:f}  |  TIMEOUT  |  Percentage:  {:f}%  |"
+            #     print s.format(i, j, time.time() - t0, count/16.)
+            # count = count + 1
+
+            print("{},{}".format(i,j))
             if(path):
-                s = "{},{}:  |  Ellapsed: {:f}  |  Current:  {:f}  |  Percentage:  {:f}%  |"
-                print s.format(i, j, time.time() - t0, time.time() - t, count/1600.)
+                results.append((i, j, time.time() - t, len(path)))
             else:
-                s = "{},{}:  |  Ellapsed: {:f}  |  TIME ELLAPSED  |  Percentage:  {:f}%  |"
-                print s.format(i, j, time.time() - t0, count/1600.)
-            count = count + 1
+                results.append((i, j, time.time() - t, 0))
+            pickle.dump(results, open("A_star_test_results.p", "wb"))
 
 
+def main():
+    # Loading world, initializing malmo
+    agent_host = initMalmo()
 
-                # if path:
+    if (mapping):
+        dataMap = makeMap(agent_host, createTPLocs())
+        print("making pickles")
+        pickle.dump(dataMap, open(saveFile, "wb"))
+    else:
+        print("opening jar of pickles")
+        dataMap = pickle.load(open("save.p", "rb"))
+        depthMap = dataMap.getDepthMap()
+        # searchTesting(dataMap, depthMap)
+        tree = buildTree(dataMap, depthMap, 0.1)    #0.1 == graph density
+        tmp(agent_host, tree, dataMap, depthMap, 5) #5   == expansion factor
+
+    return
+    # if path:
     #     walkPath(agent_host, path)
     # else:
     #     print("we didn't find shit")
+
+def buildTree(dataMap, depthMap, sampleDensity):
+    print("building KD Tree")
+    size = dataMap.getSize()
+
+    totNodes = int(size[0] * size[2] * sampleDensity)
+
+    nodes = []
+    for i in range(totNodes):
+        x = int(random.random() * (size[0]))
+        z = int(random.random() * (size[2]))
+        nodes.append([x, depthMap[x][z] ,z])
+
+    return KDTree(nodes)
+
+def tmp(agent_host, tree, dataMap, depthMap, expansionFactor):
+    start = dataMap.indexFromPoint(startPos)
+    tmp = dataMap.indexFromPoint((startPos[0] + 50, startPos[1], startPos[2] + 50))
+    end = (tmp[0], depthMap[tmp[0]][tmp[2]], tmp[2])  # search goal (per for loops)
+    waypoints = A_star_graph.search(start, end, tree, expansionFactor)
+
+    cur = (waypoints[0][0], waypoints[0][1], waypoints[0][2])
+    curIndex = 0
+
+    t = time.time()  # store timestamp
+    while(True):
+        for i in range(curIndex + 1,len(waypoints)):
+            print "{}/{}, {}".format(i, len(waypoints) - 1, curIndex)
+            tmp = (waypoints[i][0], waypoints[i][1], waypoints[i][2])   # my A* requires tuples, not arrays
+            path = A_star.search(cur, tmp, dataMap.data, 2)             # 2 second timeout
+            if path:
+                walkPath(agent_host, path)
+                cur = tmp
+                curIndex = i
+                break
+
+        if curIndex == len(waypoints) - 2:
+            print "done!"
+            break
+    # print time.time() - t
+
+
+    return waypoints
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 main()
